@@ -21,7 +21,10 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
 if (str_starts_with($path, '/api/sitev/usuario')) {
     require __DIR__ . '/../src/usuario/routes/UsuarioRoutes.php'; // ← nombre correcto
     exit;
-}
+}else if (str_starts_with($path, '/api/sitev/area')) {
+    require __DIR__ . '/../src/area/routes/AreaRoutes.php';
+    exit;
+} 
 
 // 404 por defecto
 http_response_code(404);
