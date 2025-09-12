@@ -1,6 +1,7 @@
 <?php
-// src/usuario/services/UsuarioService.php
-require_once __DIR__ . '/../models/Usuario.php';
+namespace App\Usuario\Services;
+
+use App\Usuario\Models\Usuario;
 
 class UsuarioService
 {
@@ -41,5 +42,22 @@ class UsuarioService
     public static function mostrarNombreUsuario(int $id): ?string
     {
         return Usuario::mostrarNombreUsuario($id);
+    }
+
+    public static function loginUsuario(array $data): ?array
+    {
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
+        return Usuario::loginUsuario($email, $password);
+    }
+
+    public static function cambiarPassword(int $id, array $data): bool
+    {
+        $actual = $data['password_actual'] ?? '';
+        $nueva  = $data['password_nueva'] ?? '';
+        if ($id <= 0 || $actual === '' || $nueva === '') {
+            return false;
+        }
+        return Usuario::cambiarPassword($id, $actual, $nueva);
     }
 }

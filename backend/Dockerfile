@@ -1,11 +1,12 @@
-# Imagen base: Apache + PHP 8.1
+# Ejemplo base
 FROM php:8.1-apache
+# Si usas FPM sería: FROM php:8.1-fpm
 
-# Habilitar mod_rewrite y headers (útiles para .htaccess y CORS)
-RUN a2enmod rewrite headers
+# Instalar extensiones MySQL
+RUN docker-php-ext-install mysqli pdo pdo_mysql \
+ && docker-php-ext-enable mysqli pdo_mysql
 
-# Permitir .htaccess en /var/www/html
-RUN sed -ri 's/AllowOverride\s+None/AllowOverride All/i' /etc/apache2/apache2.conf
+# (opcional) habilitar mod_rewrite si usas Apache
+RUN a2enmod rewrite
 
-# Evitar warning de ServerName
-RUN printf "\nServerName localhost\n" >> /etc/apache2/apache2.conf
+# COPY . /var/www/html   # (deja lo que ya tengas)

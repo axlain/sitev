@@ -1,5 +1,5 @@
 <?php
-// src/usuario/models/Usuario.php
+namespace App\Usuario\Models;
 require_once __DIR__ . '/../../config/database.php';
 
 class Usuario
@@ -139,11 +139,6 @@ class Usuario
         return $data;
     }
 
-
-
-
-
-
     /** OBTENER TODOS */
     public static function obtenerTodosUsuarios(): array
     {
@@ -178,4 +173,101 @@ class Usuario
         $stmt->close();
         return $tiene ? $nombre : null;
     }
+
+     /** LOGIN: devuelve datos del usuario (sin el hash) o null si credenciales inválidas */
+    public static function loginUsuario(string $email, string $password): ?array
+    {
+        $mysqli = db();
+
+        $sql = "SELECT id_usuario AS id, nombre, email, password, id_area, rol
+                FROM usuarios
+                WHERE email = ?
+                LIMIT 1";
+        $stmt = $mysqli->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException("Prepare failed: " . $mysqli->error);
+        }
+
+        $stmt->bind_param("s", $email);
+        if (!$stmt->execute()) {
+            throw new RuntimeException("Execute failed: " . $stmt->error);
+        }
+
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        $stmt->close();
+
+        // Hash “dummy” para mitigar timing leaks si el email no existe
+        $hashGuard = $row['password'] ?? password_hash('dummy_password', PASSWORD_DEFAULT);
+        $ok = password_verify($password, $hashGuard);
+        if (!$row || !$ok) {
+            return null;
+        }
+
+        // Rehash si cambió el cost/algoritmo por defecto
+        if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
+            $nuevoHash = password_hash($password, PASSWORD_DEFAULT);
+            $upd = $mysqli->prepare("UPDATE usuarios SET password = ? WHERE id_usuario = ?");
+            if ($upd) {
+                $upd->bind_param("si", $nuevoHash, $row['id']);
+                $upd->execute();
+                $upd->close();
+            }
+        }
+
+        return [
+            'id'      => (int)$row['id'],
+            'nombre'  => $row['nombre'],
+            'email'   => $row['email'],
+            'id_area' => (int)$row['id_area'],
+            'rol'     => $row['rol'],
+        ];
+    }
+
+    /** CAMBIAR CONTRASEÑA (requiere contraseña actual) */
+    public static function cambiarPassword(int $id, string $passwordActual, string $passwordNueva): bool
+    {
+        $mysqli = db();
+
+        // 1) Obtener hash actual
+        $sql = "SELECT password FROM usuarios WHERE id_usuario = ? LIMIT 1";
+        $stmt = $mysqli->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException("Prepare failed: " . $mysqli->error);
+        }
+        $stmt->bind_param("i", $id);
+        if (!$stmt->execute()) {
+            throw new RuntimeException("Execute failed: " . $stmt->error);
+        }
+        $stmt->bind_result($hashActual);
+        $tiene = $stmt->fetch();
+        $stmt->close();
+
+        if (!$tiene) {
+            return false; // usuario no existe
+        }
+
+        // 2) Verificar contraseña actual
+        if (!password_verify($passwordActual, $hashActual)) {
+            return false; // actual incorrecta
+        }
+
+        // 3) Actualizar a nuevo hash
+        $nuevoHash = password_hash($passwordNueva, PASSWORD_DEFAULT);
+        $upd = $mysqli->prepare("UPDATE usuarios SET password = ? WHERE id_usuario = ?");
+        if (!$upd) {
+            throw new RuntimeException("Prepare failed: " . $mysqli->error);
+        }
+        $upd->bind_param("si", $nuevoHash, $id);
+        $ok = $upd->execute();
+        if (!$ok) {
+            throw new RuntimeException("Execute failed: " . $upd->error);
+        }
+        $filas = $upd->affected_rows;
+        $upd->close();
+
+        // Si el nuevo hash es igual al anterior podría dar 0 filas, lo tomamos como ok
+        return $ok && $filas >= 0;
+    }
+    
 }

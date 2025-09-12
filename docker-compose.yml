@@ -5,12 +5,15 @@ services:
     env_file:
       - .env
     environment:
-      # Asegúrate que tu app lea estas variables
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ISS=${JWT_ISS}
+      - JWT_AUD=${JWT_AUD}
+      - JWT_TTL=${JWT_TTL}
     volumes:
       - ./backend:/var/www/html
     ports:
