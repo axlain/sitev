@@ -187,4 +187,26 @@ class Area
         $stmt->close();
         return $data;
     }
+    /** OBTENER ÁREA por ID o Nombre de Usuario */
+    public static function obtenerAreaPorUsuario(string $term): ?array
+    {
+        $mysqli = db();
+        $sql = "SELECT a.id_area, a.nombre AS area_nombre
+                FROM usuarios u
+                JOIN areas a ON u.id_area = a.id_area
+                WHERE u.id_usuario = ? OR u.nombre COLLATE utf8mb4_0900_ai_ci = ?";
+
+        $stmt = $mysqli->prepare($sql);
+        if (!$stmt) throw new \RuntimeException("Prepare failed: " . $mysqli->error);
+
+        $stmt->bind_param("ss", $term, $term);
+        if (!$stmt->execute()) throw new \RuntimeException("Execute failed: " . $stmt->error);
+
+        $res = $stmt->get_result();
+        $data = $res->fetch_assoc();
+        $stmt->close();
+        
+        return $data ?: null;
+    }
+
 }

@@ -148,4 +148,27 @@ class AreaController
             http_response_code(500); echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
         }
     }
+    public static function obtenerAreaPorUsuario()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            AuthMiddleware::verificarToken();
+            $term = trim($_GET['q'] ?? '');
+            if ($term === '') { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'Falta parámetro q']); return; }
+            
+            $res = AreaService::obtenerAreaPorUsuario($term);
+            if ($res === null) {
+                http_response_code(404);
+                echo json_encode(['ok'=>false,'error'=>'Usuario no encontrado o sin área asignada']);
+                return;
+            }
+            
+            echo json_encode(['ok'=>true,'data'=>$res], JSON_UNESCAPED_UNICODE);
+        } catch (\RuntimeException $e) {
+            http_response_code($e->getCode() ?: 401); echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+        } catch (\Throwable $e) {
+            http_response_code(500); echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+        }
+    }
+
 }

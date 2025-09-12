@@ -62,4 +62,9 @@ class AreaService
     {
         return Area::obtenerTramitesPorArea($id_area);
     }
+    public static function obtenerAreaPorUsuario(string $term): ?array
+    {
+        return Area::obtenerAreaPorUsuario($term);
+    }
+
 }

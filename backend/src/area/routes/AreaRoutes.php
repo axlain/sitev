@@ -12,4 +12,7 @@ if ($request_method === "GET"  && $request_uri === '/api/sitev/area/obtenerTodas
 } elseif ($request_method === 'GET'  && $request_uri === '/api/sitev/area/mostrarNombre') { AreaController::mostrarNombre();
 } elseif ($request_method === 'GET'  && $request_uri === '/api/sitev/area/usuarios') { AreaController::usuarios();
 } elseif ($request_method === 'GET'  && $request_uri === '/api/sitev/area/tramites') { AreaController::tramites();
+} elseif ($request_method === 'GET' && $request_uri === '/api/sitev/area/obtenerAreaPorUsuario') { 
+    AreaController::obtenerAreaPorUsuario(); 
 }
+
