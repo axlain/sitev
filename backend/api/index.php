@@ -24,6 +24,9 @@ if (str_starts_with($path, '/api/sitev/usuario')) {
 }else if (str_starts_with($path, '/api/sitev/area')) {
     require __DIR__ . '/../src/area/routes/AreaRoutes.php';
     exit;
+} else if (str_starts_with($path, '/api/sitev/tramite')) {
+    require __DIR__ . '/../src/tramite/routes/TramiteRoutes.php';
+    exit;
 } 
 
 // 404 por defecto
