@@ -60,4 +60,19 @@ class UsuarioService
         }
         return Usuario::cambiarPassword($id, $actual, $nueva);
     }
+
+        public static function obtenerUsuarioPorId(int $id): ?array
+    {
+        if ($id <= 0) return null;
+        return Usuario::obtenerUsuarioPorId($id);
+    }
+
+    // Opcional, por si te sirve en otros flujos
+    public static function obtenerUsuarioPorEmail(string $email): ?array
+    {
+        $email = trim(strtolower($email ?? ''));
+        if ($email === '') return null;
+        return Usuario::obtenerUsuarioPorEmail($email);
+    }
+
 }

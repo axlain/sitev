@@ -67,4 +67,23 @@ class AreaService
         return Area::obtenerAreaPorUsuario($term);
     }
 
+    /**
+     * Devuelve true si el área existe (por id).
+     */
+    public static function existeArea(int $id_area): bool
+    {
+        // Reusa el modelo: si hay nombre, el área existe
+        return Area::mostrarNombreArea($id_area) !== null;
+    }
+
+    /**
+     * (Opcional) Lanza excepción si no existe, para usarla en flujos críticos.
+     */
+    public static function assertExiste(int $id_area): void
+    {
+        if (!self::existeArea($id_area)) {
+            throw new \RuntimeException("El área ($id_area) no existe");
+        }
+    }
+
 }

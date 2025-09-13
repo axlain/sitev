@@ -6,12 +6,71 @@ use App\Middleware\AuthMiddleware;
 
 class UsuarioController
 {
+    /* ---------------------- NUEVO: registro público ---------------------- */
+    public static function registrar()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+            $nombre   = trim($input['nombre']  ?? '');
+            $email    = strtolower(trim($input['email'] ?? ''));
+            $password = (string)($input['password'] ?? '');
+            $id_area  = isset($input['id_area']) ? (int)$input['id_area'] : 0;
+
+            if ($nombre === '' || $email === '' || $password === '' || $id_area <= 0) {
+                http_response_code(400);
+                echo json_encode(['ok'=>false,'error'=>'Faltan nombre, email, password y/o id_area']);
+                return;
+            }
+
+            // (Opcional) valida que el área exista para responder 400 bonito en vez de error SQL
+            if (!\App\Area\Services\AreaService::existeArea($id_area)) {
+                http_response_code(400);
+                echo json_encode(['ok'=>false,'error'=>"El área ($id_area) no existe"]);
+                return;
+            }
+
+            $payloadCrear = [
+                'nombre'   => $nombre,
+                'email'    => $email,
+                'password' => $password,
+                'id_area'  => $id_area,
+                'rol'      => 'usuario',
+            ];
+
+            $id = UsuarioService::crearUsuario($payloadCrear);
+
+            $usuario = UsuarioService::obtenerUsuarioPorId($id);
+            $token   = AuthMiddleware::generarToken($usuario);
+
+            http_response_code(201);
+            echo json_encode(['ok'=>true,'id'=>$id,'data'=>$usuario,'token'=>$token], JSON_UNESCAPED_UNICODE);
+        } catch (\RuntimeException $e) {
+            http_response_code($e->getCode() ?: 400);
+            echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+        }
+    }
+
+
+    /* --------- OPCIONAL: bootstrap del primer admin del sistema ---------- */
+    // Si quieres permitir que el PRIMER usuario del sistema sea creado sin admin,
+    // puedes descomentar el bloque $allowBootstrap más abajo en crearUsuario().
+
     public static function crearUsuario()
     {
         header('Content-Type: application/json; charset=utf-8');
         try {
             $payload = AuthMiddleware::verificarToken();
             $esAdmin = (($payload['usr']['rol'] ?? '') === 'administrador');
+
+            // --- OPCIONAL (bootstrap primer admin):
+            // $allowBootstrap = (UsuarioService::contarUsuarios() === 0);
+            // if (!$esAdmin && !$allowBootstrap) { http_response_code(403); echo json_encode(['ok'=>false,'error'=>'Prohibido']); return; }
+
             if (!$esAdmin) { http_response_code(403); echo json_encode(['ok'=>false,'error'=>'Prohibido']); return; }
 
             $input = json_decode(file_get_contents('php://input'), true) ?? [];

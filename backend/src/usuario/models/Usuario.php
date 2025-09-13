@@ -270,4 +270,46 @@ class Usuario
         return $ok && $filas >= 0;
     }
     
+     public static function obtenerUsuarioPorId(int $id): ?array
+    {
+        $mysqli = db();
+        $sql = "SELECT id_usuario AS id, nombre, email, id_area, rol
+                FROM usuarios
+                WHERE id_usuario = ?
+                LIMIT 1";
+        $stmt = $mysqli->prepare($sql);
+        if (!$stmt) {
+            throw new \RuntimeException("Prepare failed: " . $mysqli->error);
+        }
+        $stmt->bind_param("i", $id);
+        if (!$stmt->execute()) {
+            throw new \RuntimeException("Execute failed: " . $stmt->error);
+        }
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
+
+    /** (Opcional) OBTENER por email (sin exponer el hash) */
+    public static function obtenerUsuarioPorEmail(string $email): ?array
+    {
+        $mysqli = db();
+        $sql = "SELECT id_usuario AS id, nombre, email, id_area, rol
+                FROM usuarios
+                WHERE email = ?
+                LIMIT 1";
+        $stmt = $mysqli->prepare($sql);
+        if (!$stmt) {
+            throw new \RuntimeException("Prepare failed: " . $mysqli->error);
+        }
+        $stmt->bind_param("s", $email);
+        if (!$stmt->execute()) {
+            throw new \RuntimeException("Execute failed: " . $stmt->error);
+        }
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
 }

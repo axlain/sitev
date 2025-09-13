@@ -42,7 +42,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./bd:/docker-entrypoint-initdb.d # scripts SQL de init (se ejecutan solo en el primer arranque del volumen)
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT:-3307}:3306"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${DB_PASS} --silent"]
       interval: 5s
@@ -59,7 +59,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "3000:5173"
+      - "5173:5173" # Mapea el puerto 5173 en el contenedor al 5173 en la máquina local
     networks:
       - sitev_network
     restart: unless-stopped
