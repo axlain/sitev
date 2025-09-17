@@ -37,6 +37,7 @@ body{
   position: sticky; top: 0; z-index: 10;
   background: var(--c-primary);
   border-bottom: 1px solid var(--c-border);
+  padding-bottom: 20px; /* Añadir espacio entre header y contenido */
 }
 .app-header-inner{
   height: 64px;
@@ -44,7 +45,10 @@ body{
 }
 
 /* ===== Main ===== */
-.app-main{ flex:1; }
+.app-main{ 
+  flex:1; 
+  margin-top: 20px; /* Espacio entre navbar y el contenido principal */
+}
 .section{ padding: 24px 0; }
 .section-title{ margin: 0 0 16px 0; font-size: 24px; font-weight: 800; }
 
@@ -119,3 +123,72 @@ body{
 }
 .w-420{ width:100%; max-width:420px; }
 .mt-8{ margin-top:8px; } .mt-12{ margin-top:12px; } .mt-16{ margin-top:16px; }
+
+/* ===== Navbar de Áreas ===== */
+.areas-nav {
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-primary);
+}
+.areas-nav-inner {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+}
+.areas-list {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  margin: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+.areas-list li {
+  flex: 0 0 auto;
+}
+.areas-chip {
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--c-tertiary);
+  transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+}
+.areas-chip:hover {
+  background: #fff5f5; /* sutil fondo rojo claro */
+  color: var(--c-secondary);
+  border-color: var(--c-secondary);
+}
+.areas-chip.active {
+  background: var(--c-secondary);
+  color: #fff;
+  border-color: var(--c-secondary);
+  box-shadow: 0 0 0 2px rgba(233, 54, 54, 0.25);
+}
+.areas-chip:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(233, 54, 54, 0.35);
+}
+
+.btn:disabled,
+.btn.btn-disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  background: var(--c-surface);
+  color: var(--c-muted);
+  border-color: var(--c-border);
+}
+
+.btn-outline-danger {
+  border: 1px solid red;
+  color: red;
+}
+
+.card {
+  margin-bottom: 16px;
+}
