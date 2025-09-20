@@ -3,18 +3,24 @@ export const API_BASE = 'http://localhost:8080';
 
 export async function fetchWithToken(url, opts = {}) {
   const token = localStorage.getItem('token');
-  const resp = await fetch(url, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts.headers || {}),
-    },
-  });
-  const json = await resp.json().catch(() => ({}));
-  if (!resp.ok || json?.ok === false) {
-    const msg = json?.error || json?.message || `${resp.status} ${resp.statusText}`;
+  const { headers: h = {}, body } = opts;
+
+  const headers = {
+    ...(body != null ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...h,
+  };
+
+  const resp = await fetch(url, { ...opts, headers });
+
+  // Lee texto primero para soportar respuestas no-JSON
+  const text = await resp.text();
+  let json = null;
+  try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+
+  if (!resp.ok || (json && json.ok === false)) {
+    const msg = (json && (json.error || json.message)) || `HTTP ${resp.status}`;
     throw new Error(msg);
   }
-  return json;
+  return json ?? {};
 }

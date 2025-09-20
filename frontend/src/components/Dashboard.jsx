@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE, fetchWithToken } from '../services/api.js'; // usa api.js
+import { API_BASE, fetchWithToken } from '../services/api.js';
+import { iniciarTramite, buscarInstanciasPorMaestro } from '../services/instancias';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -14,6 +15,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [loadingAreas, setLoadingAreas] = useState(true);
+
+  // Buscador por maestro (global)
+  const [q, setQ] = useState('');
+  const [resultados, setResultados] = useState([]);
+  const [buscando, setBuscando] = useState(false);
 
   // --- Usuario
   const usuario = useMemo(() => {
@@ -102,13 +108,41 @@ export default function Dashboard() {
     };
 
     bootstrap();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   // --- Derivados
   const selId = Number(selectedAreaId ?? 0);
   const myId = Number(userAreaId ?? 0);
   const soloConsulta = myId > 0 && selId > 0 && selId !== myId;
+
+  // --- Acciones
+  const onIniciar = async (id_tramite) => {
+    if (soloConsulta) return;
+    const maestro = prompt('Nombre del maestro para este trámite:');
+    if (!maestro) return;
+    try {
+      const res = await iniciarTramite({ id_tramite, maestro_nombre: maestro });
+      const id_instancia = Number(res?.id_instancia || 0);
+      if (id_instancia > 0) navigate(`/instancias/${id_instancia}`);
+      else alert('No se pudo iniciar el trámite');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const doBuscar = async () => {
+    setBuscando(true); setErr(null);
+    try {
+      const res = await buscarInstanciasPorMaestro(q.trim());
+      setResultados(Array.isArray(res?.data) ? res.data : []);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setResultados([]);
+    } finally {
+      setBuscando(false);
+    }
+  };
 
   // --- UI
   return (
@@ -120,7 +154,6 @@ export default function Dashboard() {
             <div style={{ fontSize: 12, color: '#777' }}>Área</div>
             <div style={{ fontSize: 20, fontWeight: 800 }}>{userAreaNombre || '—'}</div>
 
-            {/* Línea informativa cuando consultas otra área */}
             {selId && selId !== myId && (
               <div style={{ fontSize: 12, color: '#999' }}>
                 Consultando: {areas.find(a => Number(a.id) === selId)?.nombre || '—'}
@@ -169,6 +202,40 @@ export default function Dashboard() {
       {/* Main */}
       <main className="app-main">
         <div className="container section">
+          {/* Buscador global por maestro */}
+          <div className="card" style={{ marginBottom: 20 }}>
+            <h3 className="card-title">Buscar instancias por maestro</h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="Ej. Juan Pérez"
+                className="input"
+                style={{ flex: 1 }}
+              />
+              <button className="btn btn-primary" onClick={doBuscar} disabled={buscando || !q.trim()}>
+                {buscando ? 'Buscando…' : 'Buscar'}
+              </button>
+              {!!q && (
+                <button className="btn btn-outline" onClick={() => { setQ(''); setResultados([]); }}>
+                  Limpiar
+                </button>
+              )}
+            </div>
+
+            {resultados.length > 0 && (
+              <ul className="mt-12">
+                {resultados.map(r => (
+                  <li key={r.id_instancia} style={{ marginBottom: 6 }}>
+                    <button className="btn btn-outline" onClick={() => navigate(`/instancias/${r.id_instancia}`)}>
+                      #{r.id_instancia} – {r.nombre_tramite} – {r.maestro_nombre}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           {loading ? (
             <p>Cargando…</p>
           ) : err ? (
@@ -177,9 +244,8 @@ export default function Dashboard() {
             <>
               <h2 className="section-title">Trámites disponibles</h2>
 
-              {/* Mostrar botón "Nuevo trámite" solo si estás en tu área */}
               {!soloConsulta && (
-                <div className="card" style={{ borderStyle: 'dashed', marginBottom: '20px' }}>
+                <div className="card" style={{ marginBottom: '20px' }}>
                   <h3 className="card-title">Nuevo trámite</h3>
                   <p className="card-sub">Crear una solicitud desde cero.</p>
                   <button
@@ -191,10 +257,9 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Mostrar los trámites de la zona consultada */}
               {tramites.length === 0 ? (
-                <div className="empty">
-                  <p>No hay trámites para esta área.</p>
+                <div className="card" style={{ borderStyle:'dashed' }}>
+                  <p className="card-sub">No hay trámites para esta área.</p>
                 </div>
               ) : (
                 tramites.map(t => (
@@ -202,21 +267,28 @@ export default function Dashboard() {
                     <h3 className="card-title">{t.nombre || `Trámite #${t.id}`}</h3>
                     <p className="card-sub">{t.descripcion || 'Sin descripción.'}</p>
 
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                       <button
                         className={`btn btn-primary ${soloConsulta ? 'btn-disabled' : ''}`}
                         disabled={!!soloConsulta}
                         title={soloConsulta ? 'Solo consulta en áreas ajenas' : 'Iniciar trámite'}
-                        onClick={() => { if (!soloConsulta) alert(`Iniciar trámite ${t.id}`); }}
+                        onClick={() => onIniciar(t.id)}
                       >
                         Iniciar
                       </button>
 
-                      {/* Mostrar Editar/Eliminar SOLO si es tu área */}
+                      <button
+                        className="btn btn-outline"
+                        title="Ver instancias de este trámite"
+                        onClick={() => navigate(`/tramites/${t.id}/instancias`, { state: { tramite: t } })}
+                      >
+                        Ver instancias
+                      </button>
+
                       {!soloConsulta && (
                         <>
                           <button
-                            className="btn btn-outline-danger"
+                            className="btn btn-outline"
                             title="Editar trámite"
                             onClick={() => navigate(`/tramites/${t.id}/editar`, { state: { tramite: t } })}
                           >
@@ -231,7 +303,6 @@ export default function Dashboard() {
                               try {
                                 const { eliminarTramite } = await import('../services/tramite');
                                 await eliminarTramite(t.id);
-                                // Recargar lista
                                 await loadTramitesForArea(selectedAreaId);
                               } catch (e) {
                                 alert(e instanceof Error ? e.message : String(e));
