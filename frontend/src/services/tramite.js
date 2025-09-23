@@ -26,8 +26,40 @@ export async function eliminarTramite(id) {
   });
 }
 
-// (opcional) Listar por área
+/**
+ * Listar trámites por área (normalizado)
+ * Devuelve: [{ id, nombre, id_area }]
+ * Tolera varios endpoints del back:
+ *  - /tramite/porArea?id_area=...
+ *  - /tramite/porArea?id=...
+ *  - /tramite/porArea/{id}
+ *  - /tramite/todos (filtra por id_area)
+ */
 export async function tramitesPorArea(id_area) {
-  const qs = new URLSearchParams({ id: String(id_area) }).toString();
-  return fetchWithToken(`${API_BASE}/api/sitev/tramite/porArea?${qs}`);
+  const id = Number(id_area);
+  const urls = [
+    `${API_BASE}/api/sitev/tramite/porArea?id_area=${id}`,
+    `${API_BASE}/api/sitev/tramite/porArea?id=${id}`,
+    `${API_BASE}/api/sitev/tramite/porArea/${id}`,
+    `${API_BASE}/api/sitev/tramite/todos`,
+  ];
+
+  for (const u of urls) {
+    try {
+      const r = await fetchWithToken(u, { method: 'GET' });
+      const list = Array.isArray(r?.data) ? r.data : [];
+      const mapped = list.map(t => ({
+        id: Number(t.id ?? t.id_tramite),
+        nombre: t.nombre,
+        id_area: Number(t.id_area ?? t.area_id),
+      }));
+      if (u.endsWith('/todos')) {
+        return mapped.filter(x => !id || x.id_area === id);
+      }
+      return mapped;
+    } catch {
+      // probar siguiente url
+    }
+  }
+  return [];
 }

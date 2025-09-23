@@ -21,22 +21,32 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
 if (str_starts_with($path, '/api/sitev/usuario')) {
     require __DIR__ . '/../src/usuario/routes/UsuarioRoutes.php'; // ← nombre correcto
     exit;
-}else if (str_starts_with($path, '/api/sitev/area')) {
+
+} elseif (str_starts_with($path, '/api/sitev/area')) {
     require __DIR__ . '/../src/area/routes/AreaRoutes.php';
     exit;
-} else if (str_starts_with($path, '/api/sitev/tramite')) {
+
+} elseif (str_starts_with($path, '/api/sitev/tramite')) {
     require __DIR__ . '/../src/tramite/routes/TramiteRoutes.php';
     exit;
-} else if (str_starts_with($path, '/api/sitev/requisito')) {
+
+} elseif (str_starts_with($path, '/api/sitev/requisito')) {
+    // Si existe un archivo propio para requisito, usa este:
+    // require __DIR__ . '/../src/requisito/routes/RequisitoRoutes.php';
+    // De lo contrario, deja el de trámite si así lo manejas:
     require __DIR__ . '/../src/tramite/routes/TramiteRoutes.php';
     exit;
-<<<<<<< HEAD
-=======
-} else if (str_starts_with($path, '/api/sitev/instancia')) {
+
+} elseif (str_starts_with($path, '/api/sitev/instancia')) {
     require __DIR__ . '/../src/instancia/routes/InstanciaRoutes.php';
     exit;
->>>>>>> login-front
-} 
+} elseif (str_starts_with($path, '/api/sitev/maestro')) {
+    require __DIR__ . '/../src/maestro/routes/MaestroRoutes.php';
+    exit;
+}elseif (str_starts_with($path, '/api/sitev/escuela')) {
+    require __DIR__ . '/../src/escuela/routes/EscuelaRoutes.php';
+    exit;
+}   
 
 // 404 por defecto
 http_response_code(404);
