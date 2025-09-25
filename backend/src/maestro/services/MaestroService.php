@@ -23,20 +23,21 @@ class MaestroService
         $ap_paterno = trim((string)($input['ap_paterno'] ?? ''));
         $ap_materno = isset($input['ap_materno']) ? trim((string)$input['ap_materno']) : null;
         $rfc        = isset($input['rfc']) ? self::validarRFC($input['rfc']) : null;
+        $numero_de_personal = trim((string)($input['numero_de_personal'] ?? ''));
 
-        if ($nombre === '' || $ap_paterno === '') {
-            throw new \Exception('Faltan campos obligatorios: nombre y ap_paterno');
+        if ($nombre === '' || $ap_paterno === '' || $numero_de_personal === '') {
+            throw new \Exception('Faltan campos obligatorios: nombre, ap_paterno y numero_de_personal');
         }
         if ($rfc && Maestro::existeRFC($rfc)) {
             throw new \Exception('El RFC ya existe');
         }
-        return Maestro::crear($nombre, $ap_paterno, $ap_materno, $rfc);
+        return Maestro::crear($nombre, $ap_paterno, $ap_materno, $rfc, $numero_de_personal);
     }
 
     public static function editar(int $id_maestro, array $input): bool
     {
         $data = [];
-        foreach (['nombre','ap_paterno','ap_materno'] as $k) {
+        foreach (['nombre','ap_paterno','ap_materno','numero_de_personal'] as $k) {
             if (array_key_exists($k, $input)) $data[$k] = $input[$k] === null ? null : trim((string)$input[$k]);
         }
         if (array_key_exists('rfc', $input)) {

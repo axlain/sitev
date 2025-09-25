@@ -24,7 +24,7 @@ class MaestroController
         echo json_encode(['ok' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE);
     }
 
-    /** POST /api/sitev/maestro/crear */
+   /** POST /api/sitev/maestro/crear */
     public static function crear(): void
     {
         try {

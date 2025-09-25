@@ -48,10 +48,10 @@ export default function MaestroCard({ theme, form, onFormChange, selected, onSel
           <input placeholder="Buscar maestro (mín. 2 letras)" value={q} onFocus={()=>setOpen(true)} onChange={e=>{setQ(e.target.value); setOpen(true);}} style={input(theme)} />
           {open && (
             <div style={combo(theme)}>
-              {(results.length===0) && <div style={comboEmpty}>Sin resultados</div>}
+              {(results.length === 0) && <div style={comboEmpty}>Sin resultados</div>}
               {results.map(r => (
-                <button key={r.id_maestro} type="button" style={comboItem} onClick={()=>{ onSelect(r); onFormChange({ nombre:r.nombre||'', ap_paterno:r.ap_paterno||'', ap_materno:r.ap_materno||'', rfc:r.rfc||'' }); setOpen(false); setQ(''); }}>
-                  {r.nombre} {r.ap_paterno} {r.ap_materno || ''} {r.rfc ? `· ${r.rfc}` : ''}
+                <button key={r.id_maestro} type="button" style={comboItem} onClick={() => { onSelect(r); onFormChange({ nombre:r.nombre || '', ap_paterno:r.ap_paterno || '', ap_materno:r.ap_materno || '', rfc:r.rfc || '', numero_de_personal: r.numero_de_personal || '' }); setOpen(false); setQ(''); }}>
+                  {r.nombre} {r.ap_paterno} {r.ap_materno || ''} {r.rfc ? `· ${r.rfc}` : ''} {r.numero_de_personal ? `· #${r.numero_de_personal}` : ''}
                 </button>
               ))}
             </div>
@@ -60,27 +60,28 @@ export default function MaestroCard({ theme, form, onFormChange, selected, onSel
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <Field label="Nombre" value={form.nombre} onChange={v=>onFormChange({ ...form, nombre:v })} theme={theme} />
-        <Field label="Ape. paterno" value={form.ap_paterno} onChange={v=>onFormChange({ ...form, ap_paterno:v })} theme={theme} />
-        <Field label="Ape. materno" value={form.ap_materno} onChange={v=>onFormChange({ ...form, ap_materno:v })} theme={theme} />
-        <Field label="RFC" value={form.rfc} onChange={v=>onFormChange({ ...form, rfc:v.toUpperCase() })} theme={theme} maxLength={13} />
+        <Field label="Nombre" value={form.nombre} onChange={v => onFormChange({ ...form, nombre: v })} theme={theme} />
+        <Field label="Apellido Paterno" value={form.ap_paterno} onChange={v => onFormChange({ ...form, ap_paterno: v })} theme={theme} />
+        <Field label="Apellido Materno" value={form.ap_materno} onChange={v => onFormChange({ ...form, ap_materno: v })} theme={theme} />
+        <Field label="RFC" value={form.rfc} onChange={v => onFormChange({ ...form, rfc: v.toUpperCase() })} theme={theme} maxLength={13} />
+        <Field label="Número de Personal" value={form.numero_de_personal} onChange={v => onFormChange({ ...form, numero_de_personal: v })} theme={theme} />
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-        <button onClick={guardar} disabled={saving} style={primaryBtn(theme)}>{saving?'Guardando…':'Guardar maestro'}</button>
-        <button onClick={()=>{ onSelect(null); onFormChange({ nombre:'', ap_paterno:'', ap_materno:'', rfc:'' }); }} style={ghostBtn(theme)}>Limpiar</button>
-        {selected && <span style={{ alignSelf:'center', fontSize:16, color:'#555' }}>Usando: <strong>#{selected.id_maestro}</strong></span>}
+        <button onClick={guardar} disabled={saving} style={primaryBtn(theme)}>{saving ? 'Guardando…' : 'Guardar maestro'}</button>
+        <button onClick={() => { onSelect(null); onFormChange({ nombre: '', ap_paterno: '', ap_materno: '', rfc: '', numero_de_personal: '' }); }} style={ghostBtn(theme)}>Limpiar</button>
+        {selected && <span style={{ alignSelf: 'center', fontSize: 16, color: '#555' }}>Usando: <strong>#{selected.id_maestro}</strong></span>}
       </div>
-      {msg && <div style={feedback(theme, msg.includes('✓') ? 'ok':'err')}>{msg}</div>}
+      {msg && <div style={feedback(theme, msg.includes('✓') ? 'ok' : 'err')}>{msg}</div>}
     </section>
   );
 }
 
-function Field({ label, value, onChange, theme, type='text', maxLength }) {
+function Field({ label, value, onChange, theme, type = 'text', maxLength }) {
   return (
     <div>
-      <label style={{ color:'#111', fontWeight:700, fontSize:18 }}>{label}</label>
-      <input type={type} value={value||''} maxLength={maxLength} onChange={e=>onChange(e.target.value)} style={input(theme)} />
+      <label style={{ color: '#111', fontWeight: 700, fontSize: 18 }}>{label}</label>
+      <input type={type} value={value || ''} maxLength={maxLength} onChange={e => onChange(e.target.value)} style={input(theme)} />
     </div>
   );
 }

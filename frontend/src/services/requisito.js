@@ -75,3 +75,22 @@ export async function requisitosPorTramite(id_tramite) {
   }
   return [];
 }
+
+export async function getRequisitosPorTramite(id_tramite) {
+  const url = `${API_BASE}/api/sitev/requisito/porTramite?id_tramite=${encodeURIComponent(id_tramite)}`;
+  const res = await fetchWithToken(url, { method: 'GET' });
+  // Espera: [{ id_requisito, titulo, tipo, obligatorio, orden }]
+  return res;
+}
+
+export async function requisitosPorTramite(id_tramite) {
+  const url = `${API_BASE}/api/sitev/requisito/porTramite?id_tramite=${encodeURIComponent(id_tramite)}`;
+  const res = await fetchWithToken(url, { method: 'GET' });
+  // Puede venir así: [ {id_requisito,...}, ... ]
+  if (Array.isArray(res)) return res;
+  // O así: { data: [ ... ] }
+  if (Array.isArray(res?.data)) return res.data;
+  // O así: { requisitos: [ ... ] }
+  if (Array.isArray(res?.requisitos)) return res.requisitos;
+  return [];
+}

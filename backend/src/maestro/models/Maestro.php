@@ -6,13 +6,13 @@ require_once __DIR__ . '/../../config/database.php';
 class Maestro
 {
     /** Crear y devolver ID insertado */
-    public static function crear(string $nombre, string $ap_paterno, ?string $ap_materno, ?string $rfc): int
+   public static function crear(string $nombre, string $ap_paterno, ?string $ap_materno, ?string $rfc, ?string $numero_de_personal): int
     {
         $mysqli = db();
-        $sql = "INSERT INTO maestros (nombre, ap_paterno, ap_materno, rfc) VALUES (?,?,?,?)";
+        $sql = "INSERT INTO maestros (nombre, ap_paterno, ap_materno, rfc, numero_de_personal) VALUES (?,?,?,?,?)";
         $stmt = $mysqli->prepare($sql);
         if (!$stmt) throw new \Exception($mysqli->error);
-        $stmt->bind_param('ssss', $nombre, $ap_paterno, $ap_materno, $rfc);
+        $stmt->bind_param('sssss', $nombre, $ap_paterno, $ap_materno, $rfc, $numero_de_personal);
         if (!$stmt->execute()) throw new \Exception($stmt->error);
         return $stmt->insert_id;
     }
@@ -22,7 +22,7 @@ class Maestro
     {
         if (!$data) return false;
 
-        $allowed = ['nombre','ap_paterno','ap_materno','rfc','activo'];
+        $allowed = ['nombre','ap_paterno','ap_materno','rfc','activo','numero_de_personal'];
         $sets = [];
         $types = '';
         $vals  = [];
@@ -51,12 +51,14 @@ class Maestro
     public static function eliminar(int $id_maestro): bool
     {
         $mysqli = db();
-        $stmt = $mysqli->prepare("UPDATE maestros SET activo = 0 WHERE id_maestro = ?");
+        // Cambiar el UPDATE por DELETE
+        $stmt = $mysqli->prepare("DELETE FROM maestros WHERE id_maestro = ?");
         if (!$stmt) throw new \Exception($mysqli->error);
         $stmt->bind_param('i', $id_maestro);
         if (!$stmt->execute()) throw new \Exception($stmt->error);
-        return $stmt->affected_rows >= 0;
+        return $stmt->affected_rows > 0; // Si se eliminó el registro, affected_rows será mayor a 0
     }
+
 
     /** Obtener uno */
     public static function obtenerPorId(int $id_maestro): ?array

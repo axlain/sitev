@@ -46,6 +46,9 @@ if (str_starts_with($path, '/api/sitev/usuario')) {
 }elseif (str_starts_with($path, '/api/sitev/escuela')) {
     require __DIR__ . '/../src/escuela/routes/EscuelaRoutes.php';
     exit;
+}elseif (str_starts_with($path, '/api/sitev/archivo')) {
+    require __DIR__ . '/../src/archivo/routes/ArchivoRoutes.php';
+    exit;
 }   
 
 // 404 por defecto
