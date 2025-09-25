@@ -83,14 +83,25 @@ export async function getRequisitosPorTramite(id_tramite) {
   return res;
 }
 
-export async function requisitosPorTramite(id_tramite) {
-  const url = `${API_BASE}/api/sitev/requisito/porTramite?id_tramite=${encodeURIComponent(id_tramite)}`;
-  const res = await fetchWithToken(url, { method: 'GET' });
-  // Puede venir así: [ {id_requisito,...}, ... ]
-  if (Array.isArray(res)) return res;
-  // O así: { data: [ ... ] }
-  if (Array.isArray(res?.data)) return res.data;
-  // O así: { requisitos: [ ... ] }
-  if (Array.isArray(res?.requisitos)) return res.requisitos;
-  return [];
+export async function obtenerRequisitosPorTramite(id_tramite) {
+  const url = `${API_BASE}/api/sitev/requisito/porTramite?id_tramite=${id_tramite}`;
+  
+  try {
+    const response = await fetchWithToken(url, { method: 'GET' });
+    if (response?.ok && Array.isArray(response.data?.requisitos)) {
+      return response.data.requisitos
+        .map(x => ({
+          id_requisito: Number(x.id_requisito ?? x.id),
+          titulo: x.titulo || x.nombre || 'Campo',
+          tipo: (x.tipo || 'texto').toLowerCase(),
+          obligatorio: !!x.obligatorio,
+          orden: Number(x.orden || 0),
+        }))
+        .sort((a, b) => a.orden - b.orden); // Ordena por "orden"
+    }
+    return [];  // Si no hay datos de requisitos o está vacío
+  } catch (error) {
+    console.error('Error al obtener los requisitos:', error);
+    return [];  // Retorna un array vacío en caso de error
+  }
 }
