@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import useAuthUser from '../Hooks/useAuthUser'; // Importar el hook correctamente
+import useAuthUser from '../Hooks/useAuthUser';
 import { theme as T } from './usuario/ui';
 import HeaderUsuario from './usuario/HeaderUsuario';
 import MaestroCard from './usuario/MaestroCard';
@@ -7,8 +7,9 @@ import EscuelaCard from './usuario/EscuelaCard';
 import FechaPicker from './usuario/FechaPicker';
 import TramitePicker from './usuario/TramitePicker';
 import RequisitosForm from './usuario/RequisitosForm';
+import HistorialTramites from './usuario/HistorialTramites';
 import { crearInstancia } from '../services/instancias';
-import { obtenerRequisitosPorTramite } from '../services/requisito'; // Asegúrate de que esta función exista y esté centralizada
+import { obtenerRequisitosPorTramite } from '../services/requisito';
 
 const todayStr = () => {
   const d = new Date();
@@ -19,33 +20,26 @@ const todayStr = () => {
 };
 
 export default function DashboardUsuario() {
-  const { areaId, name } = useAuthUser(); // Usar el hook aquí para obtener los datos del usuario
+  const { areaId, name } = useAuthUser();
   const [fecha, setFecha] = useState(todayStr());
   const [maestroForm, setMaestroForm] = useState({ nombre: '', ap_paterno: '', ap_materno: '', rfc: '' });
   const [maestroSel, setMaestroSel] = useState(null);
   const [escuelaForm, setEscuelaForm] = useState({ nombre: '', clave: '' });
   const [escuelaSel, setEscuelaSel] = useState(null);
   const [tramiteSel, setTramiteSel] = useState(null);
-  const [reqValues, setReqValues] = useState({}); // Los valores para cada requisito
-  const [requisitos, setRequisitos] = useState([]); // Estado para los requisitos
+  const [reqValues, setReqValues] = useState({});
+  const [requisitos, setRequisitos] = useState([]);
   const [saving, setSaving] = useState(false);
   const [okMsg, setOkMsg] = useState(null);
   const [errMsg, setErrMsg] = useState(null);
 
-  // Función para cargar los requisitos del trámite seleccionado
   async function cargarRequisitos(id_tramite) {
     try {
-      if (!id_tramite) {
-        setErrMsg('El trámite seleccionado no es válido');
-        return;
-      }
-
-      const requisitos = await obtenerRequisitosPorTramite(id_tramite); // Usamos la función consolidada
-      if (requisitos?.length === 0) {
-        setErrMsg('Este trámite no tiene requisitos configurados.');
-      } else {
-        setRequisitos(requisitos); // Actualiza el estado con los requisitos obtenidos
-      }
+      if (!id_tramite) { setErrMsg('El trámite seleccionado no es válido'); return; }
+      const list = await obtenerRequisitosPorTramite(id_tramite);
+      setRequisitos(Array.isArray(list) ? list : []);
+      if (!list?.length) setErrMsg('Este trámite no tiene requisitos configurados.');
+      else setErrMsg(null);
     } catch (e) {
       console.error('Error al cargar los requisitos:', e);
       setRequisitos([]);
@@ -53,19 +47,33 @@ export default function DashboardUsuario() {
     }
   }
 
-  // Cargar los requisitos cuando el trámite seleccionado cambie
   useEffect(() => {
     if (tramiteSel?.id) {
-      cargarRequisitos(tramiteSel.id); // Llama a la función para cargar los requisitos
+      cargarRequisitos(tramiteSel.id);
+      setReqValues({});
     }
   }, [tramiteSel]);
 
-  // Función para guardar la instancia
   async function handleGuardarInstancia() {
     setOkMsg(null);
     setErrMsg(null);
-    if (!tramiteSel) {
-      setErrMsg('Selecciona un trámite');
+
+    if (!tramiteSel) { setErrMsg('Selecciona un trámite'); return; }
+
+    // Validaciones mínimas (recomendadas)
+    if (!maestroSel && !maestroForm?.nombre?.trim()) {
+      setErrMsg('Debes seleccionar o capturar al menos el nombre del maestro.');
+      return;
+    }
+    if (!escuelaSel && !escuelaForm?.nombre?.trim()) {
+      setErrMsg('Debes seleccionar o capturar el nombre de la escuela.');
+      return;
+    }
+    const faltantes = (requisitos || [])
+      .filter(r => r.obligatorio)
+      .filter(r => !reqValues?.[r.id_requisito]);
+    if (faltantes.length) {
+      setErrMsg(`Faltan ${faltantes.length} requisito(s) obligatorio(s).`);
       return;
     }
 
@@ -85,14 +93,14 @@ export default function DashboardUsuario() {
         clave: (escuelaForm.clave || '').toUpperCase().trim() || null,
       },
       fecha,
-      datos_requisitos: reqValues, // Enviar los valores de los requisitos
+      datos_requisitos: reqValues,
     };
 
     try {
       setSaving(true);
       await crearInstancia(payload);
       setOkMsg('Instancia guardada correctamente.');
-      setReqValues({});  // Limpiar los valores de los requisitos al guardar
+      setReqValues({});
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : String(e));
     } finally {
@@ -100,58 +108,45 @@ export default function DashboardUsuario() {
     }
   }
 
-  // Función de logout
   function logout() {
-    localStorage.clear(); // Elimina la información del usuario y token
-    window.location.assign('/login'); // Redirige al login
+    localStorage.clear();
+    window.location.assign('/login');
   }
 
   return (
     <div style={{ padding: 28, background: T.beige, color: T.black, fontSize: 18, lineHeight: 1.5 }}>
-      <HeaderUsuario areaId={areaId} userName={name} onLogout={logout} /> {/* Pasa la función logout al HeaderUsuario */}
+      <HeaderUsuario areaId={areaId} userName={name} onLogout={logout} />
 
-      {/* FILA SUPERIOR: Maestro (izq) / Escuela + Fecha (der) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
         <div>
-          <MaestroCard
-            theme={T}
-            form={maestroForm}
-            onFormChange={setMaestroForm}
-            selected={maestroSel}
-            onSelect={setMaestroSel}
-          />
+          <MaestroCard theme={T} form={maestroForm} onFormChange={setMaestroForm} selected={maestroSel} onSelect={setMaestroSel} />
         </div>
-
         <div style={{ display: 'grid', gridAutoRows: 'auto', gap: 20 }}>
-          <EscuelaCard
-            theme={T}
-            form={escuelaForm}
-            onFormChange={setEscuelaForm}
-            selected={escuelaSel}
-            onSelect={setEscuelaSel}
-          />
+          <EscuelaCard theme={T} form={escuelaForm} onFormChange={setEscuelaForm} selected={escuelaSel} onSelect={setEscuelaSel} />
           <FechaPicker theme={T} value={fecha} onChange={setFecha} />
         </div>
       </div>
 
-      {/* TRÁMITE — ancho completo */}
       <div style={{ marginTop: 20 }}>
         <TramitePicker theme={T} areaId={areaId} selected={tramiteSel} onSelect={setTramiteSel} />
       </div>
 
-      {/* REQUISITOS — ancho completo */}
       <div style={{ marginTop: 20 }}>
         <RequisitosForm
           theme={T}
           tramite={tramiteSel}
-          requisitos={requisitos} // Pasa los requisitos al formulario
+          requisitos={requisitos}
           values={reqValues}
           onChange={setReqValues}
           onSubmit={handleGuardarInstancia}
           saving={saving}
           okMsg={okMsg}
-          errMsg={errMsg}  // Mostrar mensajes de error si ocurren
+          errMsg={errMsg}
         />
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <HistorialTramites theme={T} areaId={areaId} />
       </div>
     </div>
   );

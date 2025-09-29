@@ -1,31 +1,41 @@
 <?php
+use App\Middleware\AuthMiddleware;
 use App\Escuela\Controllers\EscuelaController;
 
-$request_uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$request_method = $_SERVER['REQUEST_METHOD'];
+$path   = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
+$method = $_SERVER['REQUEST_METHOD'];
 
-if ($request_method === 'POST' && $request_uri === '/api/sitev/escuela/crear') {
-    EscuelaController::crear();
+try {
+    // 🔒 todas estas rutas requieren token
+    $payload = AuthMiddleware::verificarToken();
+    $usr = $payload['usr'] ?? null;
 
-} elseif ($request_method === 'PUT' && $request_uri === '/api/sitev/escuela/editar') {
-    EscuelaController::editar();
+    if ($method === 'POST' && $path === '/api/sitev/escuela/crear') {
+        EscuelaController::crear($usr);
 
-} elseif ($request_method === 'DELETE' && $request_uri === '/api/sitev/escuela/eliminar') {
-    EscuelaController::eliminar();
+    } elseif ($method === 'PUT' && $path === '/api/sitev/escuela/editar') {
+        EscuelaController::editar($usr);
 
-} elseif ($request_method === 'GET' && $request_uri === '/api/sitev/escuela/buscar') {
-    EscuelaController::buscar();
+    } elseif ($method === 'DELETE' && $path === '/api/sitev/escuela/eliminar') {
+        EscuelaController::eliminar($usr);
 
-} elseif ($request_method === 'GET' && $request_uri === '/api/sitev/escuela/todos') {
-    EscuelaController::todos();
+    } elseif ($method === 'GET' && $path === '/api/sitev/escuela/buscar') {
+        EscuelaController::buscar($usr);   // ?q=
 
-} elseif ($request_method === 'GET' && $request_uri === '/api/sitev/escuela/detalle') {
-    EscuelaController::detalle();
+    } elseif ($method === 'GET' && $path === '/api/sitev/escuela/todos') {
+        EscuelaController::todos($usr);
 
-} elseif ($request_method === 'GET' && $request_uri === '/api/sitev/escuela/porClave') {
-    EscuelaController::porClave();
+    } elseif ($method === 'GET' && $path === '/api/sitev/escuela/detalle') {
+        EscuelaController::detalle($usr);  // ?id=
 
-} else {
-    http_response_code(404);
-    echo json_encode(['ok' => false, 'error' => 'Ruta no encontrada en escuela'], JSON_UNESCAPED_UNICODE);
+    } elseif ($method === 'GET' && $path === '/api/sitev/escuela/porClave') {
+        EscuelaController::porClave($usr); // ?clave=
+
+    } else {
+        http_response_code(404);
+        echo json_encode(['ok' => false, 'error' => 'Ruta no encontrada en escuela'], JSON_UNESCAPED_UNICODE);
+    }
+} catch (\RuntimeException $ex) {
+    http_response_code($ex->getCode() ?: 401);
+    echo json_encode(['ok' => false, 'error' => $ex->getMessage()], JSON_UNESCAPED_UNICODE);
 }

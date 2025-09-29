@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { card, pill, title, input, primaryBtn, ghostBtn, feedback } from './ui'; // Asegúrate de que estos estilos estén definidos
+import { card, pill, title, input, primaryBtn, ghostBtn, feedback } from './ui';
 import { subirArchivo } from '../../services/uploads';
 
 export default function RequisitosForm({
@@ -13,7 +13,6 @@ export default function RequisitosForm({
   okMsg,
   errMsg,
 }) {
-  // Verificar que requisitos sea un arreglo antes de usar map
   const requisitosList = Array.isArray(requisitos) ? requisitos : [];
 
   return (
@@ -24,7 +23,9 @@ export default function RequisitosForm({
       </div>
 
       {requisitosList.length === 0 ? (
-        <div style={{ marginTop: 8, color: '#777' }}>Este trámite no tiene requisitos configurados.</div>
+        <div style={{ marginTop: 8, color: '#777' }}>
+          Este trámite no tiene requisitos configurados.
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 10 }}>
           {requisitosList.map((r) => (
@@ -33,10 +34,6 @@ export default function RequisitosForm({
               req={r}
               value={values?.[r.id_requisito] || (r.tipo === 'archivo' ? null : '')}
               onChange={(v) => onChange({ ...(values || {}), [r.id_requisito]: v })}
-              uploading={false} // Si es necesario, agrega la lógica de carga de archivo
-              setUploading={() => {}}
-              preview={null} // Si es necesario, agrega la vista previa del archivo
-              setPreview={() => {}}
               tramiteId={tramite?.id}
               theme={theme}
             />
@@ -57,8 +54,10 @@ export default function RequisitosForm({
   );
 }
 
-function Field({ req, value, onChange, theme, uploading, setUploading, preview, setPreview, tramiteId }) {
-  const [uploadSuccess, setUploadSuccess] = useState(false);  // Estado para la confirmación de éxito
+function Field({ req, value, onChange, theme, tramiteId }) {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const Label = (
     <label style={{ color: '#111', fontWeight: 700, fontSize: 18 }}>
@@ -73,20 +72,18 @@ function Field({ req, value, onChange, theme, uploading, setUploading, preview, 
         <input
           id={`file-${req.id_requisito}`}
           type="file"
-          accept=".pdf,image/*"
+          accept={req.accept || '.pdf,image/*'}
           disabled={uploading}
           onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
 
-            // Preview local inmediato
             const localUrl = URL.createObjectURL(file);
             setPreview({ url: localUrl, filename: file.name, mime: file.type });
 
             setUploading(true);
             try {
               const up = await subirArchivo(file, { id_tramite: tramiteId, id_requisito: req.id_requisito });
-              // Guarda en el state del formulario lo que el back necesita
               onChange({
                 archivo_id: up.id_archivo,
                 filename: up.filename,
@@ -94,12 +91,9 @@ function Field({ req, value, onChange, theme, uploading, setUploading, preview, 
                 size: up.size,
                 url: up.url,
               });
-              // Reemplaza preview local por la URL del servidor
               setPreview({ url: up.url, filename: up.filename, mime: up.mime });
-
-              // Confirma la carga exitosa
-              setUploadSuccess(true);  // Muestra confirmación de carga exitosa
-              setTimeout(() => setUploadSuccess(false), 5000);  // El mensaje desaparece después de 5 segundos
+              setUploadSuccess(true);
+              setTimeout(() => setUploadSuccess(false), 4000);
             } catch (err) {
               alert(err.message || 'Error al subir archivo');
             } finally {
@@ -108,13 +102,23 @@ function Field({ req, value, onChange, theme, uploading, setUploading, preview, 
           }}
           style={input(theme)}
         />
-        {uploadSuccess && <div style={{ color: 'green', marginTop: 10 }}>¡Archivo subido correctamente!</div>} {/* Mensaje de confirmación */}
+        {uploadSuccess && <div style={{ color: 'green', marginTop: 10 }}>¡Archivo subido correctamente!</div>}
         <FilePreview file={value?.url ? value : preview} />
       </div>
     );
   }
 
-  return <div>{Label}<input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={input(theme)} /></div>;
+  return (
+    <div>
+      {Label}
+      <input
+        type="text"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        style={input(theme)}
+      />
+    </div>
+  );
 }
 
 function FilePreview({ file }) {

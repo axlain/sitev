@@ -107,23 +107,31 @@ class TramiteController
 
     // Ver tramites por área
     public static function porArea()
-    {
-        header('Content-Type: application/json; charset=utf-8');
-        try {
-            AuthMiddleware::verificarToken();
-            $id_area = (int)($_GET['id'] ?? 0);
-            if ($id_area <= 0) { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'ID de área inválido']); return; }
+{
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        AuthMiddleware::verificarToken();
 
-            $tramites = TramiteService::obtenerTramitesPorArea($id_area);
-            if (empty($tramites)) { http_response_code(404); echo json_encode(['ok'=>false,'error'=>'No se encontraron trámites para esta área']); return; }
-
-            echo json_encode(['ok'=>true,'data'=>$tramites], JSON_UNESCAPED_UNICODE);
-        } catch (\RuntimeException $e) {
-            http_response_code($e->getCode() ?: 401); echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
-        } catch (\Throwable $e) {
-            http_response_code(500); echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+        // ✅ Acepta ambos nombres de parámetro: id_area o id
+        $id_area = (int)($_GET['id_area'] ?? $_GET['id'] ?? 0);
+        if ($id_area <= 0) {
+            http_response_code(400);
+            echo json_encode(['ok'=>false,'error'=>'ID de área inválido']);
+            return;
         }
+
+        $tramites = TramiteService::obtenerTramitesPorArea($id_area);
+
+        // ✅ En vez de 404, devuelve lista vacía (front ya maneja “Sin resultados”)
+        echo json_encode(['ok'=>true,'data'=>$tramites], JSON_UNESCAPED_UNICODE);
+    } catch (\RuntimeException $e) {
+        http_response_code($e->getCode() ?: 401);
+        echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
     }
+}
 
 
 

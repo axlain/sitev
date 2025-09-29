@@ -4,20 +4,15 @@ import { API_BASE, fetchWithToken } from './api';
 // --- helpers ---
 function buildMaestroNombre(maestro) {
   if (!maestro) return '';
-  return [maestro.nombre, maestro.ap_paterno, maestro.ap_materno].filter(Boolean).join(' ').trim();
+  return [maestro.nombre, maestro.ap_paterno, maestro.ap_materno]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
 }
 
 /**
- * NUEVO: crearInstancia(payloadGrande)
- * El Dashboard manda algo así:
- * {
- *   id_tramite, id_area, id_maestro?, id_escuela?,
- *   maestro: { nombre, ap_paterno, ap_materno, rfc? },
- *   escuela_actual: { nombre?, clave? },
- *   fecha, datos_requisitos: {...}  // (aún no lo usa tu back)
- * }
- * Hoy tu endpoint acepta: { id_tramite, maestro_nombre }
- * Este wrapper traduce el payload grande al body mínimo.
+ * Crear instancia (payload “grande” del Dashboard).
+ * Tu back hoy espera { id_tramite, maestro_nombre }, por eso traducimos aquí.
  */
 export async function crearInstancia(payload) {
   const id_tramite = Number(payload?.id_tramite);
@@ -28,17 +23,15 @@ export async function crearInstancia(payload) {
 
   return fetchWithToken(`${API_BASE}/api/sitev/instancia/crear`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_tramite, maestro_nombre })
+    body: JSON.stringify({ id_tramite, maestro_nombre }),
   });
 }
 
-// === lo que ya tenías ===
+// (Opcional) Atajo equivalente al de arriba:
 export async function iniciarTramite({ id_tramite, maestro_nombre }) {
   return fetchWithToken(`${API_BASE}/api/sitev/instancia/crear`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_tramite, maestro_nombre })
+    body: JSON.stringify({ id_tramite, maestro_nombre }),
   });
 }
 
@@ -49,8 +42,7 @@ export async function obtenerInstanciaDetalle(id_instancia) {
 export async function guardarValor({ id_instancia, id_requisito, valor }) {
   return fetchWithToken(`${API_BASE}/api/sitev/instancia/llenar`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_instancia, id_requisito, valor })
+    body: JSON.stringify({ id_instancia, id_requisito, valor }),
   });
 }
 
@@ -58,16 +50,21 @@ export async function buscarInstanciasPorMaestro(q) {
   return fetchWithToken(`${API_BASE}/api/sitev/instancia/buscar?q=${encodeURIComponent(q)}`);
 }
 
-/** listar instancias por tipo de trámite */
+/** Listar todas las instancias de un área, con filtros opcionales */
+export async function listarInstancias({ id_area, q = '', tipo = '', maestro = '' }) {
+  const params = new URLSearchParams({ id_area, q, tipo, maestro });
+  return fetchWithToken(`${API_BASE}/api/sitev/instancias?${params.toString()}`);
+}
+
+/** Listar instancias por tipo de trámite específico */
 export async function listarInstanciasPorTramite(id_tramite) {
   return fetchWithToken(`${API_BASE}/api/sitev/instancia/porTramite?id_tramite=${id_tramite}`);
 }
 
-// OJO: esto edita requisitos de instancia si lo usas en otro flujo
+// OJO: esto edita requisitos (si lo usas en otro flujo de admin)
 export async function editarRequisito({ id_requisito, titulo, tipo, obligatorio }) {
   return fetchWithToken(`${API_BASE}/api/sitev/requisito/editar`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_requisito, titulo, tipo, obligatorio: !!obligatorio })
+    body: JSON.stringify({ id_requisito, titulo, tipo, obligatorio: !!obligatorio }),
   });
 }

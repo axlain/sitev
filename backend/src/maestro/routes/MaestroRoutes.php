@@ -1,28 +1,38 @@
 <?php
+use App\Middleware\AuthMiddleware;
 use App\Maestro\Controllers\MaestroController;
 
-$request_uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$request_method = $_SERVER['REQUEST_METHOD'];
+$path   = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
+$method = $_SERVER['REQUEST_METHOD'];
 
-if ($request_method === 'POST' && $request_uri === '/api/sitev/maestro/crear') {
-    MaestroController::crear();
+try {
+    // 🔒 todas estas rutas requieren token
+    $payload = AuthMiddleware::verificarToken();
+    $usr = $payload['usr'] ?? null;
 
-} elseif ($request_method === 'PUT' && $request_uri === '/api/sitev/maestro/editar') {
-    MaestroController::editar();
+    if ($method === 'POST' && $path === '/api/sitev/maestro/crear') {
+        MaestroController::crear($usr);
 
-} elseif ($request_method === 'DELETE' && $request_uri === '/api/sitev/maestro/eliminar') {
-    MaestroController::eliminar();
+    } elseif ($method === 'PUT' && $path === '/api/sitev/maestro/editar') {
+        MaestroController::editar($usr);
 
-} elseif ($request_method === 'GET' && $request_uri === '/api/sitev/maestro/buscar') {
-    MaestroController::buscar();
+    } elseif ($method === 'DELETE' && $path === '/api/sitev/maestro/eliminar') {
+        MaestroController::eliminar($usr);
 
-} elseif ($request_method === 'GET' && $request_uri === '/api/sitev/maestro/todos') {
-    MaestroController::todos();
+    } elseif ($method === 'GET' && $path === '/api/sitev/maestro/buscar') {
+        MaestroController::buscar($usr);   // ?q=
 
-} elseif ($request_method === 'GET' && $request_uri === '/api/sitev/maestro/detalle') {
-    MaestroController::detalle();
+    } elseif ($method === 'GET' && $path === '/api/sitev/maestro/todos') {
+        MaestroController::todos($usr);
 
-} else {
-    http_response_code(404);
-    echo json_encode(['ok' => false, 'error' => 'Ruta no encontrada en maestro'], JSON_UNESCAPED_UNICODE);
+    } elseif ($method === 'GET' && $path === '/api/sitev/maestro/detalle') {
+        MaestroController::detalle($usr);  // ?id=
+
+    } else {
+        http_response_code(404);
+        echo json_encode(['ok' => false, 'error' => 'Ruta no encontrada en maestro'], JSON_UNESCAPED_UNICODE);
+    }
+} catch (\RuntimeException $ex) {
+    http_response_code($ex->getCode() ?: 401);
+    echo json_encode(['ok' => false, 'error' => $ex->getMessage()], JSON_UNESCAPED_UNICODE);
 }
