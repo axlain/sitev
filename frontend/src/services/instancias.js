@@ -68,3 +68,6 @@ export async function editarRequisito({ id_requisito, titulo, tipo, obligatorio 
     body: JSON.stringify({ id_requisito, titulo, tipo, obligatorio: !!obligatorio }),
   });
 }
+export async function listarInstanciasUsuario() {
+  return fetchWithToken(`${API_BASE}/api/sitev/instancia/mis`);
+}

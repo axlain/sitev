@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { card, pill, title, input, primaryBtn, ghostBtn, feedback } from './ui';
 import { subirArchivo } from '../../services/uploads';
+import { API_BASE } from '../../services/api'; // <<— IMPORTANTE
+
+// si la URL es relativa (p.ej. /uploads/x.pdf) la convierte a absoluta con el API_BASE
+const toAbs = (u) => (u && !/^https?:\/\//i.test(u) ? `${API_BASE}${u}` : u);
 
 export default function RequisitosForm({
   theme,
@@ -78,20 +82,24 @@ function Field({ req, value, onChange, theme, tramiteId }) {
             const file = e.target.files?.[0];
             if (!file) return;
 
+            // preview local inmediato
             const localUrl = URL.createObjectURL(file);
             setPreview({ url: localUrl, filename: file.name, mime: file.type });
 
             setUploading(true);
             try {
               const up = await subirArchivo(file, { id_tramite: tramiteId, id_requisito: req.id_requisito });
+              const abs = toAbs(up.url);
+
               onChange({
                 archivo_id: up.id_archivo,
                 filename: up.filename,
                 mime: up.mime,
                 size: up.size,
-                url: up.url,
+                url: abs,            // <<— usar absoluta
               });
-              setPreview({ url: up.url, filename: up.filename, mime: up.mime });
+
+              setPreview({ url: abs, filename: up.filename, mime: up.mime }); // <<— usar absoluta
               setUploadSuccess(true);
               setTimeout(() => setUploadSuccess(false), 4000);
             } catch (err) {
@@ -103,7 +111,8 @@ function Field({ req, value, onChange, theme, tramiteId }) {
           style={input(theme)}
         />
         {uploadSuccess && <div style={{ color: 'green', marginTop: 10 }}>¡Archivo subido correctamente!</div>}
-        <FilePreview file={value?.url ? value : preview} />
+        {/* si viene desde BD (values), también normalizar a absoluta */}
+        <FilePreview file={value?.url ? { ...value, url: toAbs(value.url) } : preview} />
       </div>
     );
   }

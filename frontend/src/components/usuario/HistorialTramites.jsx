@@ -1,124 +1,102 @@
-import React, { useEffect, useState } from "react";
-import { listarInstancias } from "../../services/instancias";
+// src/components/usuario/HistorialCards.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import { listarInstanciasUsuario } from "../../services/instancias";
+import { input, pill } from "./ui";
 
-export default function HistorialTramites({ theme, areaId }) {
-  const T = theme;
-  const [q, setQ] = useState("");        // texto (trámite/maestro)
-  const [tipo, setTipo] = useState("");  // id_tramite
-  const [maestro, setMaestro] = useState("");
-  const [rows, setRows] = useState([]);
+export default function HistorialCards({ theme }) {
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  function normalizeRows(data) {
-    // El backend puede devolver [] o {data:[...]} o cualquier cosa
-    const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
-    // Normaliza campos mínimos usados por la tabla
-    return list.map(r => ({
-      id: r.id ?? r.id_instancia ?? r.folio ?? Math.random().toString(36).slice(2),
-      fecha: r.fecha ?? r.created_at ?? r.fecha_creacion ?? null,
-      tramite: r.tramite ?? { nombre: r.tramite_nombre ?? "" },
-      maestro: r.maestro ?? { nombre_completo: r.maestro_nombre ?? "" },
-      escuela: r.escuela ?? { nombre: r.escuela_nombre ?? "" },
-      estado: r.estado ?? r.status ?? "Registrado",
-    }));
-  }
-
-  async function load() {
-    if (!areaId) return; // evita llamada inválida
+  const load = async () => {
     setLoading(true);
     try {
-      const data = await listarInstancias({ id_area: areaId, q, tipo, maestro });
-      setRows(normalizeRows(data));
-    } catch (e) {
-      console.error("historial instancias:", e);
-      setRows([]); // evita .map sobre undefined
-    } finally {
-      setLoading(false);
-    }
-  }
+      const r = await listarInstanciasUsuario();
+      const data = Array.isArray(r?.data) ? r.data : [];
+      setItems(data.map(x => ({
+        id: x.id_instancia,
+        fecha: x.created_at,
+        tramite: x.nombre_tramite,
+        maestro: x.maestro_nombre,
+        estado: x.estado || "Registrado",
+      })));
+    } finally { setLoading(false); }
+  };
 
-  useEffect(() => { load(); /* carga inicial y cuando cambia el área */ }, [areaId]);
+  useEffect(() => { load(); }, []);
 
-  const fmtFecha = (f) => {
-    if (!f) return "-";
+  const filtered = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    if (!n) return items;
+    return items.filter(i =>
+      String(i.id).includes(n) ||
+      (i.tramite||"").toLowerCase().includes(n) ||
+      (i.maestro||"").toLowerCase().includes(n) ||
+      (i.estado||"").toLowerCase().includes(n)
+    );
+  }, [q, items]);
+
+  const fmtFecha = f => {
     const d = new Date(f);
     return isNaN(d.getTime()) ? String(f) : d.toLocaleDateString();
-    // Si el back manda 'YYYY-MM-DD' o ISO, esto lo renderiza bien.
   };
 
   return (
-    <div style={{
-      marginTop: 20,
-      background: "#fff",
-      borderRadius: 16,
-      padding: 18,
-      border: "1px solid #e9e3dc",
-      boxShadow: "0 4px 12px rgba(0,0,0,.06)"
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{
-          padding: "4px 10px",
-          borderRadius: 999, background: T?.pillBg || "#F8EFE8",
-          color: T?.pillFg || "#9A4D39", fontWeight: 600, fontSize: 14
-        }}>
-          Trámites realizados
-        </span>
-
+    <div>
+      <div style={{ display:"flex", gap:10, marginBottom:12, alignItems:"center" }}>
+        <span style={pill(theme)}>Buscar</span>
         <input
-          placeholder="Buscar… (trámite/maestro)"
           value={q}
           onChange={(e)=>setQ(e.target.value)}
-          style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1px solid #d9d3cc" }}
-        />
-        <input
-          placeholder="Filtrar por ID de trámite"
-          value={tipo}
-          onChange={(e)=>setTipo(e.target.value)}
-          style={{ width: 180, padding: "8px 12px", borderRadius: 10, border: "1px solid #d9d3cc" }}
-        />
-        <input
-          placeholder="Filtrar por maestro"
-          value={maestro}
-          onChange={(e)=>setMaestro(e.target.value)}
-          style={{ width: 200, padding: "8px 12px", borderRadius: 10, border: "1px solid #d9d3cc" }}
+          placeholder="Folio, trámite, maestro, estado…"
+          style={{ ...input(theme), maxWidth:420 }}
         />
         <button onClick={load} style={{
-          padding: "8px 14px",
-          borderRadius: 10, border: "1px solid #b26b5a", background: "#c25742",
-          color: "#fff", fontWeight: 600, cursor: "pointer"
+          border:`1.5px solid ${theme.redDark}`, background:theme.redDark, color:"#fff",
+          borderRadius:14, padding:"10px 14px", fontWeight:800, cursor:"pointer"
         }}>
-          Aplicar
+          Recargar
         </button>
       </div>
 
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#faf7f4" }}>
-              {["Folio","Fecha","Trámite","Maestro","Escuela","Estado"].map(h=>(
-                <th key={h} style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={6} style={{ padding: 14 }}>Cargando…</td></tr>
-            ) : rows.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 14, color: "#7b7268" }}>Sin registros</td></tr>
-            ) : (
-              rows.map(r=>(
-                <tr key={r.id} style={{ borderBottom: "1px solid #f0ebe6" }}>
-                  <td style={{ padding: "8px" }}>{r.id}</td>
-                  <td style={{ padding: "8px" }}>{fmtFecha(r.fecha)}</td>
-                  <td style={{ padding: "8px" }}>{r.tramite?.nombre || "-"}</td>
-                  <td style={{ padding: "8px" }}>{r.maestro?.nombre_completo || "-"}</td>
-                  <td style={{ padding: "8px" }}>{r.escuela?.nombre || "-"}</td>
-                  <td style={{ padding: "8px" }}>{r.estado || "Registrado"}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      {loading && <div style={{ padding:8 }}>Cargando…</div>}
+      {!loading && filtered.length === 0 && <div style={{ padding:8, color:"#7b7268" }}>Sin registros</div>}
+
+      <div style={{
+        display:"grid",
+        gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))",
+        gap:14
+      }}>
+        {filtered.map(item => (
+          <article key={item.id} style={{
+            background:"#fff", border:`1.5px solid ${theme.border}`, borderRadius:16, padding:16,
+            boxShadow:"0 12px 24px rgba(17,17,17,.06)"
+          }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+              <span style={{
+                padding:"2px 10px", borderRadius:999, border:`1px solid ${theme.red}`,
+                background:theme.redSoft, color:theme.red, fontWeight:900, fontSize:12
+              }}>
+                Folio #{item.id}
+              </span>
+              <div style={{ fontSize:13, color:"#6b6259" }}>{fmtFecha(item.fecha)}</div>
+            </div>
+
+            <h4 style={{ margin:"6px 0 8px", fontSize:18 }}>{item.tramite}</h4>
+            <div style={{ fontSize:14, color:"#3a3734", marginBottom:8 }}>
+              Maestro: <strong>{item.maestro || "-"}</strong>
+            </div>
+
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              <span style={{
+                padding:"4px 10px", borderRadius:999, border:"1px solid #E5E1DC",
+                fontSize:12, fontWeight:700, background:theme.beige, color:"#111"
+              }}>
+                {item.estado}
+              </span>
+            </div>
+          </article>
+        ))}
       </div>
     </div>
   );

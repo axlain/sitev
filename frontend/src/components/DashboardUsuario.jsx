@@ -7,7 +7,10 @@ import EscuelaCard from './usuario/EscuelaCard';
 import FechaPicker from './usuario/FechaPicker';
 import TramitePicker from './usuario/TramitePicker';
 import RequisitosForm from './usuario/RequisitosForm';
-import HistorialTramites from './usuario/HistorialTramites';
+import HistorialModal from './usuario/HistorialModal';
+// ⬇️ usa la versión en cards dentro del modal
+import HistorialCards from './usuario/HistorialCards';
+
 import { crearInstancia } from '../services/instancias';
 import { obtenerRequisitosPorTramite } from '../services/requisito';
 
@@ -32,6 +35,9 @@ export default function DashboardUsuario() {
   const [saving, setSaving] = useState(false);
   const [okMsg, setOkMsg] = useState(null);
   const [errMsg, setErrMsg] = useState(null);
+
+  // ⬇️ estado del modal de historial
+  const [openHistorial, setOpenHistorial] = useState(false);
 
   async function cargarRequisitos(id_tramite) {
     try {
@@ -60,7 +66,7 @@ export default function DashboardUsuario() {
 
     if (!tramiteSel) { setErrMsg('Selecciona un trámite'); return; }
 
-    // Validaciones mínimas (recomendadas)
+    // Validaciones mínimas
     if (!maestroSel && !maestroForm?.nombre?.trim()) {
       setErrMsg('Debes seleccionar o capturar al menos el nombre del maestro.');
       return;
@@ -115,7 +121,8 @@ export default function DashboardUsuario() {
 
   return (
     <div style={{ padding: 28, background: T.beige, color: T.black, fontSize: 18, lineHeight: 1.5 }}>
-      <HeaderUsuario areaId={areaId} userName={name} onLogout={logout} />
+      {/* ⬇️ pasamos onOpenHistorial al header para el botón 🔍 */}
+      <HeaderUsuario areaId={areaId} userName={name} onLogout={logout} onOpenHistorial={() => setOpenHistorial(true)} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
         <div>
@@ -145,9 +152,10 @@ export default function DashboardUsuario() {
         />
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <HistorialTramites theme={T} areaId={areaId} />
-      </div>
+      {/* ⬇️ quitamos la tabla fija y usamos el modal con cards */}
+      <HistorialModal open={openHistorial} onClose={() => setOpenHistorial(false)} theme={T}>
+        <HistorialCards theme={T} />
+      </HistorialModal>
     </div>
   );
 }

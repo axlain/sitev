@@ -9,16 +9,21 @@ export default function TramitePicker({ theme, areaId, selected, onSelect }) {
   const [all, setAll] = useState([]);
   const [open, setOpen] = useState(false);
   const inputRef = useRef(null);
-  const T = theme;
+  const T = theme || {};
+
+  // usa la misma paleta que los otros chips si existe en el theme
+  const pillBg  = T.pillBg  || T.tagBg  || "#F8EFE8";
+  const pillFg  = T.pillFg  || T.tagFg  || "#9A4D39";
+  const border  = T.border  || "#e9e3dc";
+  const shade   = T.shadow  || "0 4px 12px rgba(0,0,0,.06)";
+  const hoverBg = T.hoverBg || "#faf7f4";
+  const text    = T.black   || "#111";
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      // Guard: si no hay área, no intentes llamar al backend
       if (!areaId) { if (alive) setAll([]); return; }
-
       try {
-        // Intenta el endpoint canon; si falla, usa el fallback
         const arr = await tramitesPorArea(areaId).catch(() => tramitesPorAreaFallback(areaId));
         if (alive) setAll(Array.isArray(arr) ? arr : []);
       } catch (e) {
@@ -40,16 +45,25 @@ export default function TramitePicker({ theme, areaId, selected, onSelect }) {
   function handlePick(t) {
     setOpen(false);
     setQ("");
-    onSelect?.(t);             // t: { id, nombre, id_area, descripcion }
+    onSelect?.(t);
     setTimeout(() => inputRef.current?.blur(), 0);
   }
 
   const noArea = !areaId;
 
   return (
-    <div style={{ background:"#fff", borderRadius:16, padding:18, border:"1px solid #e9e3dc", boxShadow:"0 4px 12px rgba(0,0,0,.06)" }}>
+    <div style={{ background:"#fff", borderRadius:16, padding:18, border:`1px solid ${border}`, boxShadow:shade }}>
       <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-        <span style={{ padding:"4px 10px", borderRadius:999, background:"#F8EFE8", color:"#9A4D39", fontWeight:600, fontSize:14 }}>
+        <span
+          style={{
+            padding:"4px 12px",
+            borderRadius:999,
+            background:pillBg,
+            color:pillFg,
+            fontWeight:600,
+            fontSize:14    // igual al resto de chips
+          }}
+        >
           Trámite
         </span>
 
@@ -66,37 +80,61 @@ export default function TramitePicker({ theme, areaId, selected, onSelect }) {
             }
             disabled={noArea}
             style={{
-              width:"100%", fontSize:16, padding:"10px 14px", borderRadius:12,
-              border:"1px solid #d9d3cc", outline:"none",
-              background: noArea ? "#f5f2ef" : "#fff", color: noArea ? "#9a9188" : "#111"
+              width:"100%",
+              fontSize:18,                 // ↑ más grande
+              lineHeight:1.2,
+              padding:"12px 14px",         // ↑ más cómodo
+              borderRadius:12,
+              border:`1px solid ${T.inputBorder || "#d9d3cc"}`,
+              outline:"none",
+              background: noArea ? "#f5f2ef" : "#fff",
+              color: noArea ? "#9a9188" : text
             }}
           />
           {open && (
             <div
               style={{
-                position:"absolute", zIndex:10, top:"calc(100% + 6px)", left:0, right:0,
-                maxHeight:280, overflow:"auto", background:"#fff",
-                border:"1px solid #e5ded6", borderRadius:12, boxShadow:"0 10px 24px rgba(0,0,0,.08)"
+                position:"absolute",
+                zIndex:10,
+                top:"calc(100% + 6px)",
+                left:0,
+                right:0,
+                maxHeight:320,
+                overflow:"auto",
+                background:"#fff",
+                border:`1px solid ${T.popoverBorder || "#e5ded6"}`,
+                borderRadius:12,
+                boxShadow:"0 10px 24px rgba(0,0,0,.08)"
               }}
               onMouseDown={(e)=>e.preventDefault()}
             >
               {list.length === 0 ? (
-                <div style={{ padding:12, color:"#8a8176" }}>Sin resultados</div>
+                <div style={{ padding:14, color:"#8a8176", fontSize:14 }}>Sin resultados</div>
               ) : (
                 list.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => handlePick(t)}
                     style={{
-                      display:"block", width:"100%", textAlign:"left",
-                      padding:"10px 12px", border:"none", background:"transparent",
-                      cursor:"pointer", fontSize:15
+                      display:"block",
+                      width:"100%",
+                      textAlign:"left",
+                      padding:"14px 14px",          // ↑
+                      border:"none",
+                      background:"transparent",
+                      cursor:"pointer"
                     }}
-                    onMouseEnter={(e)=> e.currentTarget.style.background="#faf7f4"}
+                    onMouseEnter={(e)=> e.currentTarget.style.background=hoverBg}
                     onMouseLeave={(e)=> e.currentTarget.style.background="transparent"}
                   >
-                    <div style={{ fontWeight:600 }}>{t.nombre}</div>
-                    {t.descripcion && <div style={{ fontSize:12, color:"#81786f" }}>{t.descripcion}</div>}
+                    <div style={{ fontWeight:700, fontSize:18, color:text }}>
+                      {t.nombre}
+                    </div>
+                    {t.descripcion && (
+                      <div style={{ marginTop:4, fontSize:14, lineHeight:1.5, color:"#635a51" }}>
+                        {t.descripcion}
+                      </div>
+                    )}
                   </button>
                 ))
               )}
@@ -104,7 +142,11 @@ export default function TramitePicker({ theme, areaId, selected, onSelect }) {
           )}
         </div>
 
-        {selected && <span style={{ fontSize:14, color:"#7b7268" }}>Seleccionado: <b>{selected.nombre}</b></span>}
+        {selected && (
+          <span style={{ fontSize:14, color:"#7b7268" }}>
+            Seleccionado: <b>{selected.nombre}</b>
+          </span>
+        )}
       </div>
     </div>
   );
